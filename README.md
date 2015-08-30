@@ -28,3 +28,5 @@ configuration RemContainer {
 RemContainer
 Start-DscConfiguration .\RemContainer -Wait -Verbose
 ```
+
+![Config](https://github.com/bgelens/cWindowsContainer/blob/master/newcontainerconfig.jpg)
