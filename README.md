@@ -83,3 +83,7 @@ Start-Process nginx
 ContainerNginX -StartupScript $script
 Start-DscConfiguration .\ContainerNginX -Wait -Verbose -Force
 ```
+
+**Update**
+Get-DscConfiguration now shows ContainerId and currently assigned IP Address
+![Config](https://github.com/bgelens/cWindowsContainer/blob/master/GetDSCConfigIPandID.jpg)
