@@ -3,15 +3,24 @@ cWindowsContainer
 
 Class Based DSC resource to deploy Windows Containers.
 
-**Deploy container from default image with single line startup script**
+**Update Sep 2015**
+Get-DscConfiguration now shows ContainerId and currently assigned IP Address
+![Config](https://github.com/bgelens/cWindowsContainer/blob/master/GetDSCConfigIPandID.jpg)
+**Update Dec 2015**
+Resource updated for TP4 (TP3 must use version 1.0).
+Now supports HyperV container type and the defining of the hostname within the container.
+Validated Nano Server compatibility
+
+**Deploy container from Nano image with single line startup script**
 ```powershell
 configuration NewContainer {
-    Import-DscResource -ModuleName cWindowsContainer
+    Import-DscResource -ModuleName cWindowsContainer -ModuleVersion 1.1
 
     cWindowsContainer MyAppContainer {
         Ensure = 'Present'
         Name = 'MyAppContainer'
         StartUpScript = '"Hello World" | out-file c:\hello.txt'
+        ContainerImageName = 'NanoServer'
     }
 }
 NewContainer
@@ -19,18 +28,21 @@ Start-DscConfiguration .\NewContainer -Wait -Verbose
 ```
 ![Config](https://github.com/bgelens/cWindowsContainer/blob/master/newcontainerconfig.jpg)
 
-**Deploy container from default image with multi-line startup script**
+**Deploy container from Nano image with multi-line startup script and specifying Container Hostname**
 ````powershell
 configuration MultiLineConfigContainer {
     param (
         [String] $StartupScript
     )
-    Import-DscResource -ModuleName cWindowsContainer
+    Import-DscResource -ModuleName cWindowsContainer -ModuleVersion 1.1
 
     cWindowsContainer MyDCContainer {
         Ensure = 'Present'
         Name = 'MyDCContainer'
         StartUpScript = $StartupScript
+        ContainerImageName = 'NanoServer'
+        ContainerType = 'HyperV'
+        ContainerComputerName = 'MyContainer'
     }
 }
 
@@ -46,29 +58,31 @@ Start-DscConfiguration .\MultiLineConfigContainer -Wait -Verbose
 **Remove container**
 ```powershell
 configuration RemContainer {
-    Import-DscResource -ModuleName cWindowsContainer
+    Import-DscResource -ModuleName cWindowsContainer -ModuleVersion 1.1
 
     cWindowsContainer MyAppContainer {
         Ensure = 'Absent'
         Name = 'MyAppContainer'
+        ContainerImageName = 'NanoServer'
     }
 }
 RemContainer
 Start-DscConfiguration .\RemContainer -Wait -Verbose
 ```
-**NGINX install and Network**
+**NGINX install and Network (does not work on Nano as Invoke-WebRequest is not available)**
 ```powershell
 configuration ContainerNginX {
     param (
         [String] $StartupScript
     )
-    Import-DscResource -ModuleName cWindowsContainer
+    Import-DscResource -ModuleName cWindowsContainer -ModuleVersion 1.1
 
     cWindowsContainer NginX {
         Ensure = 'Present'
         Name = 'NginX'
         StartUpScript = $StartupScript
         SwitchName = 'Virtual Switch'
+        ContainerImageName = 'WindowsServerCore'
     }
 }
 
@@ -83,7 +97,3 @@ Start-Process nginx
 ContainerNginX -StartupScript $script
 Start-DscConfiguration .\ContainerNginX -Wait -Verbose -Force
 ```
-
-**Update**
-Get-DscConfiguration now shows ContainerId and currently assigned IP Address
-![Config](https://github.com/bgelens/cWindowsContainer/blob/master/GetDSCConfigIPandID.jpg)

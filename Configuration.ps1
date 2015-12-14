@@ -1,10 +1,11 @@
 configuration NewContainer {
-    Import-DscResource -ModuleName cWindowsContainer
+    Import-DscResource -ModuleName cWindowsContainer -ModuleVersion 1.1
 
     cWindowsContainer MyAppContainer {
         Ensure = 'Present'
         Name = 'MyAppContainer'
         StartUpScript = '"Hello World" | out-file c:\hello.txt'
+        ContainerImageName = 'NanoServer'
     }
 }
 NewContainer
@@ -14,12 +15,15 @@ configuration MultiLineConfigContainer {
     param (
         [String] $StartupScript
     )
-    Import-DscResource -ModuleName cWindowsContainer
+    Import-DscResource -ModuleName cWindowsContainer -ModuleVersion 1.1
 
     cWindowsContainer MyDCContainer {
         Ensure = 'Present'
         Name = 'MyDCContainer'
         StartUpScript = $StartupScript
+        ContainerImageName = 'NanoServer'
+        ContainerType = 'HyperV'
+        ContainerComputerName = 'MyContainer'
     }
 }
 
@@ -33,11 +37,12 @@ Start-DscConfiguration .\MultiLineConfigContainer -Wait -Verbose
 
 
 configuration RemContainer {
-    Import-DscResource -ModuleName cWindowsContainer
+    Import-DscResource -ModuleName cWindowsContainer -ModuleVersion 1.1
 
     cWindowsContainer MyAppContainer {
         Ensure = 'Absent'
         Name = 'MyAppContainer'
+        ContainerImageName = 'NanoServer'
     }
 }
 RemContainer
@@ -47,13 +52,14 @@ configuration ContainerNginX {
     param (
         [String] $StartupScript
     )
-    Import-DscResource -ModuleName cWindowsContainer
+    Import-DscResource -ModuleName cWindowsContainer -ModuleVersion 1.1
 
     cWindowsContainer NginX {
         Ensure = 'Present'
         Name = 'NginX'
         StartUpScript = $StartupScript
         SwitchName = 'Virtual Switch'
+        ContainerImageName = 'WindowsServerCore'
     }
 }
 
