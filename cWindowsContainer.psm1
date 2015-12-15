@@ -8,6 +8,11 @@ enum ContainerType {
     HyperV
 }
 
+enum AccessMode {
+    ReadWrite
+    ReadOnly
+}
+
 [DscResource()]
 class cWindowsContainer {
     [DscProperty(Key)]
@@ -39,6 +44,15 @@ class cWindowsContainer {
 
     [DscProperty()]
     [String] $ContainerComputerName
+
+    [DscProperty()]
+    [String] $SourcePath
+
+    [DscProperty()]
+    [String] $DestinationPath
+
+    [DscProperty()]
+    [AccessMode] $AccessMode = 'ReadOnly'
 
     [DscProperty()]
     [ContainerType] $ContainerType = [ContainerType]::Default
@@ -84,11 +98,33 @@ class cWindowsContainer {
                 }
                 #endregion Switch
 
-                #region Create and start Container
+                #region Create Container
                 Write-Verbose -Message "Creating Container: $($ContainerNewParams | Out-String)"
                 $Container = New-Container @ContainerNewParams
+                #endregion Create Container
+
+                #region add SharedFolder
+                Write-Verbose -Message "Validating if a SharedFolder is needed"
+                if ($this.SourcePath) {
+                    if ((Test-Path $this.SourcePath) -and ($this.DestinationPath -ne "")) {
+                        Write-Verbose -Message "Mapping $($this.sourcePath) to $($this.DestinationPath)"
+                        $SharedFolderNewParams = [System.Collections.Hashtable]::new()
+                        $SharedFolderNewParams.Add('ContainerName',$this.Name)
+                        $SharedFolderNewParams.Add('SourcePath',$this.SourcePath)
+                        $SharedFolderNewParams.Add('DestinationPath',$this.DestinationPath)
+                        $SharedFolderNewParams.Add('AccessMode',$this.AccessMode)
+                        Add-ContainerSharedFolder @SharedFolderNewParams
+                    } else {
+                        Write-Error -Message "$($this.SourcePath) isn't available or missing destination path in configuration"
+                    }
+                } else {
+                    Write-Verbose -Message "No SharedFolder needed"
+                }
+
+                #region start Container
+                Write-Verbose -Message "Starting Container $($this.Name)"
                 $Container | Start-Container
-                #endregion Create and start Container
+                #endregion start container
 
                 #region run startup script
                 if ($null -ne $this.StartUpScript) {
@@ -99,6 +135,7 @@ class cWindowsContainer {
             } else {
                 Write-Verbose -Message 'Removing Container'
                 Get-Container -Name $this.Name | Stop-Container -Passthru | Remove-Container -Force
+
             }
         } catch {
             Write-Error -ErrorRecord $_ -ErrorAction Stop
@@ -107,7 +144,14 @@ class cWindowsContainer {
 
     [bool] Test () {
         if ((Get-Container -Name $this.Name -ErrorAction SilentlyContinue) -and ($this.Ensure -eq [Ensure]::Present)) {
-            return $true
+            $value = $true
+            $SharedFolder = Get-ContainerSharedFolder -ContainerName $this.Name -ErrorAction SilentlyContinue
+            if (($SharedFolder.SourcePath -eq $this.SourcePath) -and ($SharedFolder.DestinationPath -eq $this.DestinationPath) -and ($SharedFolder.AccessMode -eq $this.AccessMode)) {
+                $Value = $true
+            } else {
+                $Value = $false
+            }
+            return $value
         } else {
             return $false
         }
@@ -135,6 +179,12 @@ class cWindowsContainer {
             Write-Verbose -Message 'Acquiring IPAddress'
             if ($null -ne $this.SwitchName) {
                 $Configuration.Add('IPAddress',$this.InvokeScript('(Get-NetIPAddress -AddressFamily IPv4 -PrefixOrigin Manual).IPAddress',$Configuration.ContainerId))
+            }
+            if ($this.SourcePath) {
+                $SharedFolder = Get-ContainerSharedFolder -ContainerName $this.Name
+                $Configuration.Add('SourcePath',$SharedFolder.SourcePath)
+                $Configuration.Add('DestinationPath',$SharedFolder.DestinationPath)
+                $Configuration.Add('AccessMode',$SharedFolder.AccessMode)
             }
         } else {
             $Configuration.Add('Ensure','Absent')
