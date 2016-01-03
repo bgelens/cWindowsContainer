@@ -10,6 +10,8 @@ Get-DscConfiguration now shows ContainerId and currently assigned IP Address
 Resource updated for TP4 (TP3 must use version 1.0).
 Now supports HyperV container type and the defining of the hostname within the container.
 Validated Nano Server compatibility
+Added SharedFolder possibility
+
 
 **Deploy container from Nano image with single line startup script**
 ```powershell
@@ -83,6 +85,9 @@ configuration ContainerNginX {
         StartUpScript = $StartupScript
         SwitchName = 'Virtual Switch'
         ContainerImageName = 'WindowsServerCore'
+		SourcePath = 'C:\Share\www'
+		DestinationPath = 'C:\nginx-1.9.4\html'
+		AccessMode = 'ReadOnly'
     }
 }
 
